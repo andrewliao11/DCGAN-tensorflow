@@ -8,6 +8,10 @@ from six.moves import xrange
 
 from ops import *
 from utils import *
+import pdb
+
+# if use mnist, the y denotes the number in the image
+# in generator, the z(noise) will concat with y as input
 
 class DCGAN(object):
     def __init__(self, sess, image_size=108, is_crop=True,
@@ -119,6 +123,7 @@ class DCGAN(object):
     def train(self, config):
         """Train DCGAN"""
         if config.dataset == 'mnist':
+	    # data_X is the image
             data_X, data_y = self.load_mnist()
         else:
             data = glob(os.path.join("./data", config.dataset, "*.jpg"))
@@ -135,6 +140,7 @@ class DCGAN(object):
         self.d_sum = tf.merge_summary([self.z_sum, self.d_sum, self.d_loss_real_sum, self.d_loss_sum])
         self.writer = tf.train.SummaryWriter("./logs", self.sess.graph)
 
+	# sample noise
         sample_z = np.random.uniform(-1, 1, size=(self.sample_size , self.z_dim))
         
         if config.dataset == 'mnist':
@@ -174,7 +180,7 @@ class DCGAN(object):
                         batch_images = np.array(batch).astype(np.float32)[:, :, :, None]
                     else:
                         batch_images = np.array(batch).astype(np.float32)
-
+		# z is the noise
                 batch_z = np.random.uniform(-1, 1, [config.batch_size, self.z_dim]) \
                             .astype(np.float32)
 
@@ -224,6 +230,7 @@ class DCGAN(object):
 
                 if np.mod(counter, 100) == 1:
                     if config.dataset == 'mnist':
+			# sample is the generated image
                         samples, d_loss, g_loss = self.sess.run(
                             [self.sampler, self.d_loss, self.g_loss],
                             feed_dict={self.z: sample_z, self.images: sample_images, self.y:batch_labels}
@@ -300,7 +307,6 @@ class DCGAN(object):
         else:
             s = self.output_size
             s2, s4 = int(s/2), int(s/4) 
-
             # yb = tf.expand_dims(tf.expand_dims(y, 1),2)
             yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
             z = tf.concat(1, [z, y])
@@ -393,7 +399,8 @@ class DCGAN(object):
         np.random.shuffle(X)
         np.random.seed(seed)
         np.random.shuffle(y)
-        
+
+	# convert label into one-hot
         y_vec = np.zeros((len(y), self.y_dim), dtype=np.float)
         for i, label in enumerate(y):
             y_vec[i,y[i]] = 1.0
